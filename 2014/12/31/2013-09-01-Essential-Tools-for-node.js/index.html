@@ -1,0 +1,66 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><title> Essential Tools for node.js · AndrewTheken.com</title><meta name="description" content="Essential Tools for node.js - Andrew Theken"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="short icon" href="/favicon.png"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="http://andrewtheken.com/atom.xml" title="AndrewTheken.com"></head><body><div class="wrap"><header><a href="/" class="logo-link"><img src="/favicon.png"></a><ul class="nav nav-list"><li class="nav-list-item"><a href="/" target="_self" class="nav-list-link">BLOG</a></li><li class="nav-list-item"><a href="/archives/" target="_self" class="nav-list-link">ARCHIVE</a></li><li class="nav-list-item"><a href="http://weibo.com/sunchongsheng" target="_blank" class="nav-list-link">WEIBO</a></li><li class="nav-list-item"><a href="https://github.com/pinggod" target="_blank" class="nav-list-link">GITHUB</a></li><li class="nav-list-item"><a href="/atom.xml" target="_self" class="nav-list-link">RSS</a></li></ul></header><section class="container"><div class="post"><article class="post-block"><h1 class="post-title">Essential Tools for node.js</h1><div class="post-info">Dec 31, 2014</div><div class="post-content"><p><em>Update: If you like this post, you may also want to check out my “<a href="/2013/09/02/Node.js-App-Basics-Part-1/">Node.js App Basics</a>“ series.</em></p>
+<p>Getting started with <strong>node.js</strong> can be somewhat challenging. This is not because there’s anything intrisically difficult, but the culture and community is actually so prolific that it’s difficult to know where to start.</p>
+<p>In my node.js adventures, here’s a few tools that I have found to be critical, and save me loads of time.</p>
+<ol>
+<li><p><strong><a href="https://npmjs.org" target="_blank" rel="external">NPM</a></strong></p>
+<p> This one is so core, it’s actually included with the node.js installer. If you’ve done development in any mainstream language, you’ll recognize and appreciate this one right away. “NPM” stands for “Node Package Manager”, and it has a few design characteristics that actually make it work better than many of the package managers you’ve used, including:</p>
+<ul>
+<li>RubyGems</li>
+<li>Nuget</li>
+<li>Pypi</li>
+</ul>
+</li>
+<li><p><strong><a href="http://gruntjs.com/" target="_blank" rel="external">Grunt</a></strong></p>
+<p> Grunt does your, <em>ahem</em>, grunt-work. Using grunt, lots of standard build-time tasks can be achieved. For example:</p>
+<ul>
+<li>JS can be linted and minified.</li>
+<li>Compile/minify your LESS/SASS/CSS.</li>
+<li>Run Unit Tests</li>
+<li>Copy/package assets</li>
+<li>Pre-compile templates to JS (if that’s your thing).</li>
+<li><p>“Compile” <a href="http://coffeescript.org/" target="_blank" rel="external">coffeescript</a> / <a href="http://www.typescriptlang.org/" target="_blank" rel="external">typescript</a> / <a href="https://github.com/google/traceur-compiler" target="_blank" rel="external">tracuer</a></p>
+<p>Grunt can be configured to run your set of default tasks each time you type this:</p>
+<p>  $ grunt</p>
+<p>But, using “watch,” Grunt can also monitor sets of files and perform specific tasks when things change (this is a great way to speed up the feedback loop).</p>
+</li>
+</ul>
+</li>
+<li><p><strong><a href="https://npmjs.org/package/supervisor" target="_blank" rel="external">Supervisor</a></strong></p>
+<p> Node is great for simple one-off scripts, but many people are finding that they want to use it for web development. I think this is a great use, as there are many cheap/free hosting solutions to get people started, but also that you can learn JS/CSS/HTML and be on your way to developing a complete web-app (rather than needing to learn JS and Ruby/Python/C#, etc.)</p>
+<p> Supervisor will monitor a folder and start/restart a node process when anything changes. I have this started with Grunt, so that I have my node process restart when I save changes to the server files, as well as monitoring files that I need minified for the client.</p>
+<p> Installing supervisor is simple:</p>
+<pre><code>$ npm install supervisor -g
+</code></pre><p> And using it is now just as simple as this:</p>
+<pre><code>$ supervisor server.js
+</code></pre><p> Supervisor will now monitor js changes in the current directory (and sub-directories) and then restart the server.js file when they change.</p>
+</li>
+<li><p><strong>A good terminal.</strong></p>
+<p> While I am sure it’s possible to get pretty good with node.js (and dealing with packages/etc.) without a good terminal, I think it’s likely that you’ll be missing out on many time-savers by doing so. </p>
+<p> I use “Terminal.app” on OS X, with <a href="http://www.zsh.org/" target="_blank" rel="external">zsh</a> as my default shell (with <a href="https://github.com/robbyrussell/oh-my-zsh" target="_blank" rel="external">“oh-my-zsh”</a>, but I have used bash for a long time and this is also a pretty good shell (and the default on OS X).</p>
+<p> I have never really liked any of the terminals in Windows, but <a href="http://www.hanselman.com/blog/Console2ABetterWindowsCommandPrompt.aspx" target="_blank" rel="external">some people talk a lot about Console2</a></p>
+<p> If you’re using Linux, you probably already have experience in a terminal, and could care less about my suggestions.</p>
+</li>
+<li><p><strong><a href="http://git-scm.com/" target="_blank" rel="external">Git</a></strong></p>
+<p> Git has grown incredibly in popularity over the last several years, and it’s actually a great tool to help with your <a href="http://en.wikipedia.org/wiki/Personal_software_process" target="_blank" rel="external">personal software process</a>, regardless of which version control systems your employer/clients require you to use.</p>
+<p> Getting some basic git knowledge is not required right away, but if you get serious about node.js, you will end up seeing/wanting to know a bit about git.</p>
+<p> If you plan to deploy to Heroku, Nodejitsu, Azure, or Joyent, you’ll need to know a little bit of git, sooner or later.</p>
+</li>
+<li><p><strong>A *nix Package Manager</strong></p>
+<p> Node.js is able to talk with many different technologies, and having a complete development environment where you can work disconnected is incredibly valuable. No wi-fi? No Problem.</p>
+<p> Package managers allow you to easily install services on your dev machine, and in production environments.</p>
+<p> As I have mentioned in the past, I really have loved OS X and my mac for many years. The combination of <em>It Just Works &trade;</em>, and the ability to get some *nix functionality has really made it an incredible environment for development.</p>
+<p> A few years ago “<a href="http://brew.sh/" target="_blank" rel="external">homebrew</a>“ was introduced to the world, and installing packages on OS X from source has never been easier:</p>
+<pre><code>$ brew install couchdb
+</code></pre><p> If you’re a developer on OS X and don’t have this installed. <em>Do this now!</em> You will thank me.</p>
+<p> If you’re on Linux, you might have rpm, apt, yum, or some other package management, again, you’ll need to get to know these tools, as they will help you immensely.</p>
+<p> Again, I am not sure if there’s a great analog on Windows, but perhaps the closest is <a href="http://www.cygwin.com/" target="_blank" rel="external">cygwin</a>, which is “Better than nothing.”</p>
+</li>
+<li><p><strong>A good text editor</strong></p>
+<p> Some folks love <em>notepad.exe</em>.</p>
+<p> Some folks love <em>vim</em>.</p>
+<p> Some folks love <em>sublime text</em>.</p>
+<p> Regardless which you love, a good text editor that can do some of the work for you is essential. <em>At a minimum</em> your editor of choice should have the ability to do syntax highlighting/format blocks. Everything after that is icing.</p>
+</li>
+</ol>
+<p>Each of these is worthy of its own post, and I am leaving many of the tools in the chain out, but hopefully this will provide a bit of direction on where to get started.</p>
+</div></article></div></section><footer><div class="paginator"><a href="/2014/12/31/2012-11-04-just-lazy-enough/" class="prev">PREV</a><a href="/2014/12/31/2013-08-31-stupid-easy-web-serving/" class="next">NEXT</a></div><div class="copyright"><p>© 2015 - 2016 <a href="http://andrewtheken.com">Andrew Theken</a>, powered by <a href="https://hexo.io/" target="_blank">Hexo</a> and <a href="https://github.com/pinggod/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-MML-AM_CHTML"></script><script>(function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;e=o.createElement(i);r=o.getElementsByTagName(i)[0];e.src='//www.google-analytics.com/analytics.js';r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));ga('create',"UA-65933410-1",'auto');ga('send','pageview');</script></body></html>

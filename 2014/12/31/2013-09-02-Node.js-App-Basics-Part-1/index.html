@@ -1,0 +1,55 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><title> Node.js App Basics - Part 1 · AndrewTheken.com</title><meta name="description" content="Node.js App Basics - Part 1 - Andrew Theken"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="short icon" href="/favicon.png"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="http://andrewtheken.com/atom.xml" title="AndrewTheken.com"></head><body><div class="wrap"><header><a href="/" class="logo-link"><img src="/favicon.png"></a><ul class="nav nav-list"><li class="nav-list-item"><a href="/" target="_self" class="nav-list-link">BLOG</a></li><li class="nav-list-item"><a href="/archives/" target="_self" class="nav-list-link">ARCHIVE</a></li><li class="nav-list-item"><a href="http://weibo.com/sunchongsheng" target="_blank" class="nav-list-link">WEIBO</a></li><li class="nav-list-item"><a href="https://github.com/pinggod" target="_blank" class="nav-list-link">GITHUB</a></li><li class="nav-list-item"><a href="/atom.xml" target="_self" class="nav-list-link">RSS</a></li></ul></header><section class="container"><div class="post"><article class="post-block"><h1 class="post-title">Node.js App Basics - Part 1</h1><div class="post-info">Dec 31, 2014</div><div class="post-content"><hr>
+<p>Feel free to review the other posts in this series:</p>
+<ul>
+<li><a href="/2013/09/01/Essential-Tools-for-node.js/">Part 0</a></li>
+<li>Part 1 (You’re already here!)</li>
+<li><a href="/2013/09/03/Node.js-App-Basics-Part-2/">Part 2</a></li>
+<li><a href="/2013/09/20/Node.js-App-Basics-Part-3/">Part 3</a> </li>
+<li><a href="/2013/11/23/Node.js-App-Basics-Part-4/">Part 4</a></li>
+</ul>
+<h2 id=""><a href="#" class="headerlink" title="=="></a>==</h2><p>Following up on <a href="/2013/09/01/Essential-Tools-for-node.js">yesterday’s post</a> on getting started with Node.js, I’ll work through some of the basics for getting your first node.js web app running.</p>
+<p>Please keep in mind that I’ve been in and out of node for about two years now, but have only recently done anything non-trivial with it. Chances are that you can find lots of guidance on <a href="http://stackoverflow.com/questions/tagged/node.js" target="_blank" rel="external">Stack Overflow</a> from people that have been working with node professionally, but they might also skip over some tidbits that are useful to those just getting their feet wet.</p>
+<p>In this tutorial, we’ll use node.js to serve a front-end for the Wikipedia API and to search and display a single article abstract. I’m going to deliberately skip “best practices” in order to get us to a “fully working” version of this demo project. I will write a few follow up posts to outline how I’d do things in a <em>professional</em> situation afterwards.</p>
+<p>I’m going to go ahead and assume you’ve got a terminal you’re happy with, and have already installed node.js/npm and it’s in your PATH. Let’s get started!</p>
+<p>Create a new directory and cd into it:</p>
+<pre><code>$ mkdir wikipedia_front_end
+$ cd wikipedia_front_end
+</code></pre><p>The whole node world revolves around a file called “<a href="https://npmjs.org/doc/json.html" target="_blank" rel="external">package.json</a>“, fortunately, npm is great at helping you to get this configured:</p>
+<pre><code>$ npm init
+</code></pre><p>This will ask you a series of questions about your app, you can choose your own values, and modify them as you wish at a later time. Keeping a package.json file will allow you to define packages and requirements for use when you want to deploy this project later.</p>
+<p>While node.js ships with an http server that can handle incoming requests, the base server is very light-weight, and only does basic HTTP interactions. For anything more sophisticated, you’ll want to include some additional packages to make your life easier. </p>
+<p>Node has a very popular package called “connect,” and this can be used to create a “pipeline” of actions that execute when a request is made to our application. </p>
+<p>Standard things that usually happen in a web request include:</p>
+<ul>
+<li>Form/cookie parsing</li>
+<li>Logging</li>
+<li>File serving</li>
+<li>Authentication/Authorization</li>
+<li>Custom server logic</li>
+</ul>
+<p><em>connect</em> provides some of this functionality, and a <em>middleware</em> infrastructure to allow us to do our own logic. <em>Middleware</em> was popularized by Ruby’s “<a href="http://rack.github.io/" target="_blank" rel="external">rack</a>“ (and later copied by many frameworks).</p>
+<p>If you’re not familiar with the <em>middleware</em> paradigm, the basic idea is that one can abstract an HTTP interaction down into two parts:</p>
+<ol>
+<li>An HTTP Request</li>
+<li>An HTTP Response</li>
+</ol>
+<p>After these objects are created, a stack of <em>middleware</em> can be defined to interact with each of these two elements in a very elegant way:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">function(request, response)&#123;</div><div class="line">	/* Read information from the request and </div><div class="line">	then (optionally) manipulate the response. */</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><strong>It is worth noting that middleware can read/modify both the request and the response, as well as having some side-effect (such as logging) that doesn’t modify either of these objects.</strong> (And there is a <em>very</em> important gotcha in node.js related to this that I will cover later on).</p>
+<p>You could probably write your own middleware server in node in an afternoon, but <em>connect</em> includes some standard middleware that you’ll be happy to have, so let’s install it now:</p>
+<pre><code>$ npm install connect --save
+</code></pre><p>The “–save” in this command causes the package requirements to be stored into package.json, which will allow them to be restored if you deployed to a service like <a href="http://www.heroku.com" target="_blank" rel="external">heroku</a>.</p>
+<p>OK, so we’re just about to get our server going, here’s all the code you’ll need (save this to “server.js” in the “wikipedia_front_end” folder you created above):</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">//&apos;require&apos; says &quot;pull in this installed package&quot;</div><div class="line">var connect = require(&apos;connect&apos;);</div><div class="line"></div><div class="line">//we&apos;re still using Node&apos;s built in HTTP server, so let&apos;s pull it in.</div><div class="line">var http = require(&apos;http&apos;);</div><div class="line"></div><div class="line">//create our middleware stack (just send a basic message for now):</div><div class="line">var app = connect()</div><div class="line">	.use(function(request, response)&#123;</div><div class="line">		response.write(&apos;Hello from connect!&apos;);</div><div class="line">		response.end();</div><div class="line">	&#125;);</div><div class="line"></div><div class="line">//start a server on port 3000, any request that comes in should call</div><div class="line">//the &quot;app&quot; function that is our middleware stack from above.</div><div class="line">http.createServer(app).listen(3000);</div></pre></td></tr></table></figure>
+<p>Finally, in your terminal, type:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ node server.js</div></pre></td></tr></table></figure>
+<p>This will start your server at <a href="http://localhost:3000" target="_blank" rel="external">http://localhost:3000</a>. Navigate there to see the fruits of your labor. Note that you can go to any path on this server and the same response will be sent from node.</p>
+<p>To stop this server, you can type “ctrl+c”, and this will end the node process.</p>
+<p>If you’re like me, you may want to play at this point, you can certainly stop and start node after each modification “server.js”, but I have found that “supervisor” is a great utility to restart the server after each modification, you can install it like so:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ npm install supervisor -g</div></pre></td></tr></table></figure>
+<p>This will install this command globally (that’s what the ‘-g’ does), so that you can use it from whichever projects you’re working on.</p>
+<p>Let’s invoke the server again, but this time with supervisor:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ supervisor server.js</div></pre></td></tr></table></figure>
+<p>You can now update and save changes to ‘server.js’ and supervisor will restart your app instantly, this will save you lots of time in development.</p>
+<p><a href="/2013/09/03/Node.js-App-Basics-Part-2/">Next time, we’ll cover some important details about how the middleware works, and adding some custom server logic.</a></p>
+</div></article></div></section><footer><div class="paginator"><a href="/2014/12/31/2013-08-31-stupid-easy-web-serving/" class="prev">PREV</a><a href="/2014/12/31/2013-09-03-Node.js-App-Basics-Part-2/" class="next">NEXT</a></div><div class="copyright"><p>© 2015 - 2016 <a href="http://andrewtheken.com">Andrew Theken</a>, powered by <a href="https://hexo.io/" target="_blank">Hexo</a> and <a href="https://github.com/pinggod/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-MML-AM_CHTML"></script><script>(function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;e=o.createElement(i);r=o.getElementsByTagName(i)[0];e.src='//www.google-analytics.com/analytics.js';r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));ga('create',"UA-65933410-1",'auto');ga('send','pageview');</script></body></html>

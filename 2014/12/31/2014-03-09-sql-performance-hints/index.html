@@ -1,0 +1,68 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><title> SQL Server Performance Hints · AndrewTheken.com</title><meta name="description" content="SQL Server Performance Hints - Andrew Theken"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="short icon" href="/favicon.png"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="http://andrewtheken.com/atom.xml" title="AndrewTheken.com"></head><body><div class="wrap"><header><a href="/" class="logo-link"><img src="/favicon.png"></a><ul class="nav nav-list"><li class="nav-list-item"><a href="/" target="_self" class="nav-list-link">BLOG</a></li><li class="nav-list-item"><a href="/archives/" target="_self" class="nav-list-link">ARCHIVE</a></li><li class="nav-list-item"><a href="http://weibo.com/sunchongsheng" target="_blank" class="nav-list-link">WEIBO</a></li><li class="nav-list-item"><a href="https://github.com/pinggod" target="_blank" class="nav-list-link">GITHUB</a></li><li class="nav-list-item"><a href="/atom.xml" target="_self" class="nav-list-link">RSS</a></li></ul></header><section class="container"><div class="post"><article class="post-block"><h1 class="post-title">SQL Server Performance Hints</h1><div class="post-info">Dec 31, 2014</div><div class="post-content"><p><em>Over time, one accumulates a set of knowledge that can help them to understand and to debug various types of software problems.</em></p>
+<p><em>The following is a quick braindump of some things that I’ve learned while working with SQL Server over the last few years. This post is not comprehensive, it’s probably wrong in many respects. I look to you, dear Internet, to correct me.</em></p>
+<hr>
+<p>###Platinum Rule:</p>
+<p>Everything I know is wrong (for some cases, and some definitions of ‘wrong’). “Rules” listed here are heuristic, and exceptions exist more frequently than not.</p>
+<p>###Golden Rule:</p>
+<p>  It’s all about <em><strong>Balance</strong></em>.</p>
+<p>  SQL is bound by the rules of the Von Neumann architecture, just like (<em>probably</em>) every other computer you’ve ever used. This means that there is a constant contention for memory and processing resources. The SQL Engine is <em>black magic</em>. But, it’s not totally unpredictable; The decisions it makes are directly in response to the fundamental resource contention that exists on all computers.</p>
+<p>  By far, the largest performance bottleneck for most applications is the time that is required to do reads/writes to disk and transfer of data over the wire. Therefore, minimizing reads/writes, and tuning what types of reads/writes are done (sequential vs. random) are typically the two best investments of time for tuning SQL.</p>
+<p>  The following is a diagram of the relative performance of various IO operations. Understanding where in the IO pipeline you’re willing to make tradeoffs is the first step to optimizing your use of SQL Server.</p>
+<p><img src="/imgs/relative_latency_numbers.png" alt="Relative IO Latency Numbers"></p>
+<p>###Silver Rule:</p>
+<p>SQL servers are typically <em>general purpose</em>. The database is optimized for the “average” use case (though, it does dynamically tune itself). Therefore, sometimes the best answer is to bring a slightly larger dataset back from the server and to do the calculations in application code (on app servers that can be scaled horizontally, more easily).</p>
+<p>###Hints:</p>
+<ul>
+<li>Table-scans mean the server is doing many reads against the disk.<ul>
+<li>Table-scans typically indicate that an appropriate index does exist, or is not being leveraged.</li>
+<li>It’s really important to account for how large the table in question is. (i.e., it is generally not productive to optimize a 10MB table)</li>
+</ul>
+</li>
+<li>Understanding locking is pretty important:<ul>
+<li><a href="http://technet.microsoft.com/en-us/library/aa213039(v=sql.80\" target="_blank" rel="external">Microsoft’s article</a>.aspx)</li>
+<li>Locks come in several sizes, “row” to “database”</li>
+<li>Locks can be non-exclusive, or exclusive (read vs. read/write)</li>
+<li>Locks cause waits.</li>
+<li>Joins cause locks.</li>
+<li>Writes cause locks.</li>
+<li>Locks block writes (and sometimes reads).</li>
+</ul>
+</li>
+<li>Aggregate queries (<code>sum</code>,<code>average</code>,<code>count</code>, etc.) can cause locks/table-scans.</li>
+<li>Full-text queries are generally expensive (especially “contains”-type queries: <code>LIKE = &#39;%string%&#39;</code>)</li>
+<li>“CONTAINS” queries can be expensive, because they often result in non-optimal use of indexes</li>
+<li>Variable numbers of elements in a “<code>CONTAINS(@p0, @p1)</code>“-type clause result in different SQL execution plans, compilation of which is a large cost of many queries.</li>
+<li>SQL will cache the top X execution plans, this is variable, and dependent upon memory constraints.</li>
+<li>Clustered indexes cause the data to be written in a specific order on disk, this allows SQL to make intelligent choices about table-scans vs. index-seeks. Therefore, ALL tables should have a clustered index, and this should generally be a monotonically increasing (or decreasing) value (such as an int).</li>
+<li>Estimating table-size<ul>
+<li><a href="http://technet.microsoft.com/en-us/library/ms175991.aspx" target="_blank" rel="external">Estimating table size</a></li>
+<li><a href="http://technet.microsoft.com/en-us/library/aa258271(v=sql.80\" target="_blank" rel="external">SQL Data types</a>.aspx)</li>
+<li><a href="http://technet.microsoft.com/en-us/library/aa258271(v=sql.80\" target="_blank" rel="external">Integer sizes</a>.aspx)</li>
+<li>varchar/nvarchar: varchar uses 1-byte chars (ASCII-extended encoding), nvarchar uses 2-byte chars (UCS-2 encoding).</li>
+<li>[N]VARCHAR(MAX) uses a variable amount of space, and requires more “logical reads” when accessed, due to the way that it is organized on disk (not co-located with the rest of the table data).</li>
+</ul>
+</li>
+<li>Indexes are <a href="http://en.wikipedia.org/wiki/B-tree" target="_blank" rel="external">B-Trees</a><ul>
+<li><a href="http://technet.microsoft.com/en-us/library/ms177443(v=sql.105\" target="_blank" rel="external">Microsoft info on indexes</a>.aspx)</li>
+<li>Generally, inclusion of columns in an index should be ordered “general to specific.” This allows nodes to be partitioned in a progressively more specific levels.<ul>
+<li><em>Unless</em> there is a use case where data in the table will be accessed by a highly specific value (ID, for example). Then there may be the need for an index that has that as the first column, maybe.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>N+1 queries are bad because they result in many round-trips to the server, and many logical reads by the server, both of these activities are VERY SLOW compared to processor time.</li>
+<li>For <em>most</em> applications, “in data-center bandwidth” is plentiful.<ul>
+<li>Therefore, somewhat larger result sets over the wire are preferred to hammering a resource-constrained SQL server.</li>
+</ul>
+</li>
+<li>Generally, writes should be batched when possible. SQL can optimize writes to disk better, when dealing with bulk writes.<ul>
+<li>There are many cases where batching bulk writes will be infeasible.</li>
+<li>It is possible to batch too many writes to SQL, escalating locks and expanding the TempDB in such a way that you actually hurt overall performance.</li>
+</ul>
+</li>
+<li>ACID adds overhead, not everything requires ACID.<ul>
+<li>If you don’t need ACID, you can relax some SQL Server constraints, but you might want to use another “Non-SQL” solution, instead.</li>
+</ul>
+</li>
+</ul>
+</div></article></div></section><footer><div class="paginator"><a href="/2014/12/31/2014-10-06-observations-on-swift/" class="prev">PREV</a><a href="/2014/12/31/2014-03-19-nodejs-workshop/" class="next">NEXT</a></div><div class="copyright"><p>© 2015 - 2016 <a href="http://andrewtheken.com">Andrew Theken</a>, powered by <a href="https://hexo.io/" target="_blank">Hexo</a> and <a href="https://github.com/pinggod/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-MML-AM_CHTML"></script><script>(function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;e=o.createElement(i);r=o.getElementsByTagName(i)[0];e.src='//www.google-analytics.com/analytics.js';r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));ga('create',"UA-65933410-1",'auto');ga('send','pageview');</script></body></html>

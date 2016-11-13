@@ -1,0 +1,44 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><title> Simple Dynamic DNS · AndrewTheken.com</title><meta name="description" content="Simple Dynamic DNS - Andrew Theken"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="short icon" href="/favicon.png"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="http://andrewtheken.com/atom.xml" title="AndrewTheken.com"></head><body><div class="wrap"><header><a href="/" class="logo-link"><img src="/favicon.png"></a><ul class="nav nav-list"><li class="nav-list-item"><a href="/" target="_self" class="nav-list-link">BLOG</a></li><li class="nav-list-item"><a href="/archives/" target="_self" class="nav-list-link">ARCHIVE</a></li><li class="nav-list-item"><a href="http://weibo.com/sunchongsheng" target="_blank" class="nav-list-link">WEIBO</a></li><li class="nav-list-item"><a href="https://github.com/pinggod" target="_blank" class="nav-list-link">GITHUB</a></li><li class="nav-list-item"><a href="/atom.xml" target="_self" class="nav-list-link">RSS</a></li></ul></header><section class="container"><div class="post"><article class="post-block"><h1 class="post-title">Simple Dynamic DNS</h1><div class="post-info">Dec 31, 2014</div><div class="post-content"><p>I recently purchased a Raspberry Pi as a very low power home server. One of the many uses for this always-on server is to update a DNS record whenever my public IP changes - this essentially allows me to connect to my home network when I’m outside of it.</p>
+<p>About two years ago, I started using <a href="https://dnsimple.com/r/81a82c7da1ac67" target="_blank" rel="external">DNSimple.com</a> for all of my domains, and one of it’s great features is an API to manage your domains. The DNSimple API makes building your own “Dynamic DNS system” super simple.</p>
+<p>I think this is generally useful, so I wanted to share it.</p>
+<p>For the purposes of this tutorial, I’m going to use “example.com” as the top-level domain, and assume it’s being managed by DNSimple. We’ll also assume “home.example.com” is the domain that we wish to keep pointed at your home IP. Let’s get started.</p>
+<h3 id="Preliminaries"><a href="#Preliminaries" class="headerlink" title="Preliminaries:"></a>Preliminaries:</h3><p>First, log into DNSimple and get your account API token <a href="https://dnsimple.com/user" target="_blank" rel="external">from this page</a>. </p>
+<p>After you have your account token, navigate to the “example.com” domain and add a new A Record for “home” with a TTL of 60 (1 minute). The IP can be anything, so let’s use <code>1.1.1.1</code> for now. If we’re successful, this will be updated in a few minutes anyway.</p>
+<p>Once we have created this record, in the DNS overview, hover over the black <code>?</code> icon. This will indicate the <strong>record id</strong> which will be required later.</p>
+<h3 id="Server-Configuration"><a href="#Server-Configuration" class="headerlink" title="Server Configuration:"></a>Server Configuration:</h3><p>Now that we have the preliminary information, we can get to the easy part.</p>
+<p>Log into your home server (this is tutorial assumes Linux, but with modifications a similar setup is possible on OS X and Windows).</p>
+<p>In your home directory, create a new bash script and make it executable:</p>
+<pre><code>$ touch dns_update.sh
+$ chmod +x dns_update.sh
+</code></pre><p>Let’s now open <code>dns_update.sh</code> in your favorite text editor, and copy the following script into it.<br><em>NOTE: THIS SCRIPT WILL NOT WORK BEFORE YOU FOLLOW THE NEXT STEP!!</em></p>
+<pre><code>#! /bin/bash  
+
+ip=$(curl -s https://api.ipify.org/)  
+
+curl -s -H &apos;X-DNSimple-Token: &lt;account-email-address&gt;:&lt;account-token&gt;&apos; \
+-H &apos;Accept: application/json&apos; \
+-H &apos;Content-Type: application/json&apos; \
+-X PUT \
+-d &quot;{\&quot;record\&quot; : {\&quot;content\&quot;:\&quot;$ip\&quot; }}&quot; \
+https://api.dnsimple.com/v1/domains/&lt;domain&gt;/records/&lt;record-id&gt; &gt; /dev/null
+</code></pre><p>Now that we have the skeleton of our update script in place, we need to update the following tokens in it using the values we grabbed in the preliminary steps of this tutorial namely:</p>
+<ul>
+<li><strong>\<account-email-address></account-email-address></strong></li>
+<li><strong>\<account-token></account-token></strong></li>
+<li><strong>\<domain></domain></strong> (“example.com”, NOT “home.example.com”)</li>
+<li><strong>\<record-id></record-id></strong> (The record ID for “home.example.com”)</li>
+</ul>
+<p>Save this file, and then run the script from the shell:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ ./dns_update.sh</div></pre></td></tr></table></figure>
+<p>At this point, if you open navigate to this record in the DNSimple web UI it should contain your current public IP address. (Also notice that we’re using an awesome public API from “<a href="http://ipify.org" target="_blank" rel="external">ipify.org</a>“ to detect our public address). </p>
+<p>This script is designed to produce no output by piping it to <code>/dev/null</code>, but you can certainly experiment by removing <code>&gt; /dev/null</code> from the last line of the script.</p>
+<p>If everything is working, we have one last step to keep this running; We need to add a cronjob that runs once per minute.</p>
+<p>Open the <code>crontab editor</code> so that we can add the update job:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ crontab -e</div></pre></td></tr></table></figure>
+<p>Add the following line (and keep in mind how fussy the <em>cron format requirements</em> can be!):</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">* * * * * &lt;path-to-script&gt;/dns_update.sh</div></pre></td></tr></table></figure>
+<p>Notice that you will need to update <code>&lt;path-to-script&gt;</code> to point to the full directory where <code>dns_update.sh</code> is stored (under normal circumstances, this will be your home directory, and the chronjob is also scheduled to run under this account, so the permisions should be OK).</p>
+<h3 id="Confirmation"><a href="#Confirmation" class="headerlink" title="Confirmation:"></a>Confirmation:</h3><p>If you’ve followed the tutorial above carefully, you can confirm everything is working by navigating to this record in the DNSimple web UI, changing it back to an IP like <code>1.1.1.1</code>, Wait 60-70 seconds, and refresh the web page. </p>
+<p>If your cronjob runs successfully, your public IP should be shown in the web UI.</p>
+<p>I hope this helps you out and saves you some time!</p>
+</div></article></div></section><footer><div class="paginator"><a href="/2014/12/31/2014-03-19-nodejs-workshop/" class="prev">PREV</a><a href="/2014/05/15/2014-05-15-save-the-internet/" class="next">NEXT</a></div><div class="copyright"><p>© 2015 - 2016 <a href="http://andrewtheken.com">Andrew Theken</a>, powered by <a href="https://hexo.io/" target="_blank">Hexo</a> and <a href="https://github.com/pinggod/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdn.bootcss.com/mathjax/2.6.1/MathJax.js?config=TeX-MML-AM_CHTML"></script><script>(function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;e=o.createElement(i);r=o.getElementsByTagName(i)[0];e.src='//www.google-analytics.com/analytics.js';r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));ga('create',"UA-65933410-1",'auto');ga('send','pageview');</script></body></html>
